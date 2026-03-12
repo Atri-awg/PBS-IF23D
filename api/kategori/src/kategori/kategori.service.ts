@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -15,15 +16,40 @@ export class KategoriService {
 
   async create(createKategoriDto: CreateKategoriDto) {
     // return 'This action adds a new kategori';
+
+    // buat variabel untuk filter data kategori berdasarkan nama
+    const nama_filter = createKategoriDto.nama
+      .replace(/\s/g, '')
+      .toLowerCase()
+      .trim();
+
+    // cek apakah nama kategori sudah ada di database
+    const exist = await this.prisma.kategori.findFirst({
+      where: {
+        nama: nama_filter,
+      },
+    });
+
+    // Jika nama kategori sudah ada, maka kembalikan response error
+    if (exist) {
+      throw new ConflictException({
+        success: true,
+        message: 'Data kategori gagal ditambahkan (nama kategori sudah ada)',
+        metadata: {
+          status: HttpStatus.CONFLICT,
+        },
+      });
+    }
+
     // Simpan data kategori ke database menggunakan Prisma
     await this.prisma.kategori.create({
       data: {
-        nama: 'M i n u m a n',
+        nama: createKategoriDto.nama,
       },
     });
     return {
       success: true,
-      massage: 'Data kategori berhasil ditambahkan',
+      message: 'Data kategori berhasil ditambahkan',
       metadata: {
         status: HttpStatus.CREATED,
       },
@@ -50,7 +76,7 @@ export class KategoriService {
 
       throw new NotFoundException({
         success: false,
-        massage: 'Data kategori tidak ditemukan',
+        message: 'Data kategori tidak ditemukan',
         metadata: {
           status: HttpStatus.NOT_FOUND,
           total_data: data.length,
@@ -59,7 +85,7 @@ export class KategoriService {
     }
     return {
       success: true,
-      massage: '',
+      message: '',
       metadata: {
         status: HttpStatus.OK,
         total_data: data.length,
