@@ -33,7 +33,7 @@ export class KategoriService {
     // Jika nama kategori sudah ada, maka kembalikan response error
     if (exist) {
       throw new ConflictException({
-        success: true,
+        success: false,
         message: 'Data kategori gagal ditambahkan (nama kategori sudah ada)',
         metadata: {
           status: HttpStatus.CONFLICT,
