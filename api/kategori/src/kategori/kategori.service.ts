@@ -23,7 +23,6 @@ export class KategoriService {
     // panggil fungsi checkKategoriExist untuk mengecek apakah data kategori dengan nama tertentu sudah ada atau belum
     const nama_filter = await conflictKategori(
       this.prisma.kategori,
-      0,
       process.env.FAILED_SAVE!,
       createKategoriDto.nama,
     );
@@ -98,9 +97,9 @@ export class KategoriService {
       // jika data ditemukan, maka update data kategori
       const nama_filter = await conflictKategori(
         this.prisma.kategori,
-        id,
         process.env.FAILED_UPDATE!,
         updateKategoriDto.nama ?? '',
+        id,
       );
 
       // Update data kategori berdasarkan id
