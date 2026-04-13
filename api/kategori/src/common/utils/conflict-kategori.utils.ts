@@ -3,9 +3,9 @@ import { PrismaService } from '../../prisma.service';
 // buat fungsi untuk mengecek apakah data kategori dengan id tertentu sudah ada atau belum
 export const conflictKategori = async (
   prisma: PrismaService['kategori'],
-  id: number,
   message: string,
   nama: string,
+  id?: number,
 ) => {
   // buat variabel untuk filter data kategori berdasarkan nama
   const nama_filter = nama.replace(/\s/g, '').toLowerCase().trim();
@@ -14,7 +14,7 @@ export const conflictKategori = async (
   // fineFirst untuk yang bikan primary key, findUnique untuk yang primary key
   const exist = await prisma.findFirst({
     where: {
-      NOT: { id: id },
+      NOT: id ? { id: id } : undefined,
       nama_filter: nama_filter,
     },
   });
