@@ -14,8 +14,11 @@ export const conflictKategori = async (
   // fineFirst untuk yang bikan primary key, findUnique untuk yang primary key
   const exist = await prisma.findFirst({
     where: {
-      NOT: id ? { id: id } : undefined,
+      // ternary operator untuk mengecek apakah id ada atau tidak, jika id ada maka filter data kategori berdasarkan nama dan id yang tidak sama dengan id yang sedang diupdate, jika id tidak ada maka filter data kategori berdasarkan nama saja
+      // NOT: id ? { id: id } : undefined,
       nama_filter: nama_filter,
+      // spread operator untuk mengecek apakah id tidak sama dengan id yang sedang diupdate (jika id ada)
+      ...(id ? { NOT: { id: id } } : undefined),
     },
   });
 
