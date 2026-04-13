@@ -96,31 +96,12 @@ export class KategoriService {
       );
 
       // jika data ditemukan, maka update data kategori
-      // buat variabel untuk filter data kategori berdasarkan nama
-      const nama_filter = (updateKategoriDto.nama ?? '')
-        .replace(/\s/g, '')
-        .toLowerCase()
-        .trim();
-
-      // cek apakah nama kategori sudah ada di database
-      // fineFirst untuk yang bikan primary key, findUnique untuk yang primary key
-      const exist = await this.prisma.kategori.findFirst({
-        where: {
-          NOT: { id: id },
-          nama_filter: nama_filter,
-        },
-      });
-
-      // Jika nama kategori sudah ada, maka kembalikan response error
-      if (exist) {
-        throw new ConflictException({
-          success: false,
-          message: 'Data kategori gagal diubah (nama kategori sudah ada)',
-          metadata: {
-            status: HttpStatus.CONFLICT,
-          },
-        });
-      }
+      const nama_filter = await conflictKategori(
+        this.prisma.kategori,
+        id,
+        process.env.FAILED_UPDATE!,
+        updateKategoriDto.nama ?? '',
+      );
 
       // Update data kategori berdasarkan id
       await this.prisma.kategori.update({
@@ -135,7 +116,7 @@ export class KategoriService {
 
       return {
         success: true,
-        message: 'Data kategori berhasil diubah',
+        message: process.env.SUCCESS_UPDATE,
         metadata: { status: HttpStatus.OK },
       };
     } catch (error) {
