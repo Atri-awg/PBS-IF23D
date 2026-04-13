@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   HttpException,
   HttpStatus,
@@ -8,138 +9,195 @@ import {
 import { CreateKategoriDto } from './dto/create-kategori.dto';
 import { UpdateKategoriDto } from './dto/update-kategori.dto';
 import { PrismaService } from '../prisma.service';
-import { error } from 'node:console';
+import { noteExistKategori } from '../common/utils/not-exist-kategori.utils';
+import { conflictKategori } from '../common/utils/conflict-kategori.utils';
 
 @Injectable()
 export class KategoriService {
   // Buat constructor untuk menginisialisasi PrismaService
   constructor(private readonly prisma: PrismaService) {}
 
-  // async create(createKategoriDto: CreateKategoriDto) {
-  //   // return 'This action adds a new kategori';
-
-  //   // buat variabel untuk filter data kategori berdasarkan nama
-  //   const nama_filter = createKategoriDto.nama
-  //     .replace(/\s/g, '')
-  //     .toLowerCase()
-  //     .trim();
-
-  //   // cek apakah nama kategori sudah ada di database
-  //   const exist = await this.prisma.kategori.findFirst({
-  //     where: {
-  //       nama: nama_filter,
-  //     },
-  //   });
-
-  //   // Jika nama kategori sudah ada, maka kembalikan response error
-  //   if (exist) {
-  //     throw new ConflictException({
-  //       success: false,
-  //       message: 'Data kategori gagal ditambahkan (nama kategori sudah ada)',
-  //       metadata: {
-  //         status: HttpStatus.CONFLICT,
-  //       },
-  //     });
-  //   }
-
-  //   // Simpan data kategori ke database menggunakan Prisma
-  //   await this.prisma.kategori.create({
-  //     data: {
-  //       nama: createKategoriDto.nama,
-  //     },
-  //   });
-  //   return {
-  //     success: true,
-  //     message: 'Data kategori berhasil ditambahkan',
-  //     metadata: {
-  //       status: HttpStatus.CREATED,
-  //     },
-  //   };
-  // }
-
   async create(createKategoriDto: CreateKategoriDto) {
-    const nama = this.formatNama(createKategoriDto.nama);
+    // return 'This action adds a new kategori';
+
+    // panggil fungsi checkKategoriExist untuk mengecek apakah data kategori dengan nama tertentu sudah ada atau belum
+    const nama_filter = await conflictKategori(
+      this.prisma.kategori,
+      0,
+      process.env.FAILED_SAVE!,
+      createKategoriDto.nama,
+    );
+
+    // Simpan data kategori ke database menggunakan Prisma
+    await this.prisma.kategori.create({
+      data: {
+        nama: createKategoriDto.nama,
+        nama_filter: nama_filter,
+      },
+    });
+    return {
+      success: true,
+      message: process.env.SUCCESS_SAVE,
+      metadata: {
+        status: HttpStatus.CREATED,
+      },
+    };
+  }
+
+  findAll() {
+    return this.prisma.kategori.findMany();
+
+    // jika data kategori tidak ditemukan, maka kembalikan response error
+  }
+
+  // buat fungsi untuk detail data
+  async findOne(id: number) {
+    // return `This action returns a #${id} kategori`;
 
     try {
-      const kategori = await this.prisma.kategori.create({
-        data: { nama },
-      });
+      // panggil fungsi notExistKategori untuk mengecek apakah data kategori dengan id tertentu sudah ada atau belum
+      const data = await noteExistKategori(
+        this.prisma.kategori,
+        id,
+        'Data kategori tidak ditemukan',
+      );
+
+      // jika data kategori ditemukan, maka kembalikan data kategori
       return {
         success: true,
-        message: 'Data kategori berhasil ditambahkan',
-        data: kategori,
-        metadata: {
-          status: HttpStatus.CREATED,
-        },
+        message: 'Data kategori berhasil ditemukan',
+        metadata: { status: HttpStatus.OK },
+        data: data,
       };
     } catch (error) {
-      if (error.code === 'P2002') {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: 'Parameter slug atau id harus berupa angka',
+        metadata: {
+          status: HttpStatus.BAD_REQUEST,
+        },
+      });
+    }
+  }
+
+  // buat fungsi untuk update data
+  async update(id: number, updateKategoriDto: UpdateKategoriDto) {
+    // return `This action updates a #${id} kategori`;
+
+    try {
+      // panggil fungsi notExistKategori untuk mengecek apakah data kategori dengan id tertentu sudah ada atau belum
+      await noteExistKategori(
+        this.prisma.kategori,
+        id,
+        'Data kategori tidak ditemukan',
+      );
+
+      // jika data ditemukan, maka update data kategori
+      // buat variabel untuk filter data kategori berdasarkan nama
+      const nama_filter = (updateKategoriDto.nama ?? '')
+        .replace(/\s/g, '')
+        .toLowerCase()
+        .trim();
+
+      // cek apakah nama kategori sudah ada di database
+      // fineFirst untuk yang bikan primary key, findUnique untuk yang primary key
+      const exist = await this.prisma.kategori.findFirst({
+        where: {
+          NOT: { id: id },
+          nama_filter: nama_filter,
+        },
+      });
+
+      // Jika nama kategori sudah ada, maka kembalikan response error
+      if (exist) {
         throw new ConflictException({
           success: false,
-          message: 'Nama kategori sudah digunakan',
+          message: 'Data kategori gagal diubah (nama kategori sudah ada)',
           metadata: {
             status: HttpStatus.CONFLICT,
           },
         });
       }
-      throw error;
-    }
-  }
-  private formatNama(nama: string): string {
-    return nama
-      .replace(/\s+/g, ' ')
-      .trim()
-      .toLowerCase()
-      .replace(/\b\w/g, (char) => char.toUpperCase());
-  }
 
-  async findAll() {
-    // return this.prisma.kategori.findMany();
-    // tampilkan data kategori dengan nama dan deskripsi saja
-    const data = await this.prisma.kategori.findMany();
-    // Jika data kategori tidak ditemukan
-    if (data.length === 0) {
-      // throw new HttpException(
-      //   {
-      //     success: false,
-      //     massage: 'Data kategori tidak ditemukan',
-      //     metadata: {
-      //       status: HttpStatus.NOT_FOUND,
-      //       total_data: data.length,
-      //     },
-      //   },
-      //   HttpStatus.NOT_FOUND,
-      // );
+      // Update data kategori berdasarkan id
+      await this.prisma.kategori.update({
+        where: {
+          id: id,
+        },
+        data: {
+          nama: updateKategoriDto.nama,
+          nama_filter: nama_filter,
+        },
+      });
 
-      throw new NotFoundException({
+      return {
+        success: true,
+        message: 'Data kategori berhasil diubah',
+        metadata: { status: HttpStatus.OK },
+      };
+    } catch (error) {
+      // if (
+      //   error instanceof NotFoundException ||
+      //   error instanceof ConflictException
+      // ) {
+      //   throw error;
+      // }
+
+      // if (error instanceof ConflictException) {
+      //   throw error;
+      // }
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new BadRequestException({
         success: false,
-        message: 'Data kategori tidak ditemukan',
+        message: 'Parameter slug atau id harus berupa angka',
         metadata: {
-          status: HttpStatus.NOT_FOUND,
-          total_data: data.length,
+          status: HttpStatus.BAD_REQUEST,
         },
       });
     }
-    return {
-      success: true,
-      message: '',
-      metadata: {
-        status: HttpStatus.OK,
-        total_data: data.length,
-      },
-      data: data,
-    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} kategori`;
-  }
+  async remove(id: number) {
+    // return `This action removes a #${id} kategori`;
 
-  update(id: number, updateKategoriDto: UpdateKategoriDto) {
-    return `This action updates a #${id} kategori`;
-  }
+    try {
+      // panggil fungsi notExistKategori untuk mengecek apakah data kategori dengan id tertentu sudah ada atau belum
+      await noteExistKategori(
+        this.prisma.kategori,
+        id,
+        'Data kategori tidak ditemukan',
+      );
 
-  remove(id: number) {
-    return `This action removes a #${id} kategori`;
+      // jika data kategori ditemukan, maka hapus data kategori
+      // Hapus data kategori berdasarkan id
+      await this.prisma.kategori.delete({
+        where: {
+          id: id,
+        },
+      });
+      return {
+        success: true,
+        message: 'Data kategori berhasil dihapus',
+        metadata: { status: HttpStatus.OK },
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: 'Parameter slug atau id harus berupa angka',
+        metadata: {
+          status: HttpStatus.BAD_REQUEST,
+        },
+      });
+    }
   }
 }
