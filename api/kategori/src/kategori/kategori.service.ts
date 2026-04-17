@@ -43,8 +43,18 @@ export class KategoriService {
     };
   }
 
-  findAll() {
-    return this.prisma.kategori.findMany();
+  async findAll() {
+    const data = await this.prisma.kategori.findMany();
+
+    if (data.length === 0) {
+      throw new NotFoundException({
+        success: false,
+        message: 'Data kategori tidak ditemukan',
+        metadata: {
+          status: HttpStatus.NOT_FOUND,
+        },
+      });
+    }
 
     // jika data kategori tidak ditemukan, maka kembalikan response error
   }
