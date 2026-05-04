@@ -2,9 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { CreateKategoriDto } from './dto/create-kategori.dto';
 import { UpdateKategoriDto } from './dto/update-kategori.dto';
 import axios from 'axios';
+import { kategori_api } from '../common/instances/kategori.instances';
 
 // buat interface untuk data kategori
-interface Kategori {
+export interface Kategori {
   id: number;
   nama: string;
   nama_filter: string;
@@ -28,9 +29,13 @@ export class KategoriService {
     return response.data;
   }
 
-  async findOne(id: number): Promise<Kategori[]> {
+  async findOne(id: number): Promise<Kategori> {
     // return `This action returns a #${id} kategori`;
-    const response = await axios.get<Kategori[]>(`${this.base_url}/${id}`);
+
+    // const response = await axios.get<Kategori>(`${this.base_url}/${id}`);
+    // return response.data;
+
+    const response = await kategori_api.get<Kategori>(`/${id}`);
     return response.data;
   }
 
