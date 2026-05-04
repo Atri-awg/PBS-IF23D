@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -56,6 +55,13 @@ export class KategoriService {
       });
     }
 
+    return {
+      success: true,
+      message: 'Data kategori berhasil ditemukan',
+      metadata: { status: HttpStatus.OK },
+      data: data,
+    };
+
     // jika data kategori tidak ditemukan, maka kembalikan response error
   }
 
@@ -75,13 +81,15 @@ export class KategoriService {
       return {
         success: true,
         message: 'Data kategori berhasil ditemukan',
-        metadata: { status: HttpStatus.OK },
+        metadata: { status: HttpStatus.OK }, //200
         data: data,
       };
     } catch (error) {
+      // 404 Not Found jika data kategori tidak ditemukan
       if (error instanceof NotFoundException) {
         throw error;
       }
+      // 400 Bad Request jika parameter slug atau id tidak valid
       throw new BadRequestException({
         success: false,
         message: 'Parameter slug atau id harus berupa angka',
