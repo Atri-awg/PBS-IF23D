@@ -6,15 +6,15 @@ import {
   Patch,
   Param,
   Delete,
-  // UseGuards,
+  UseGuards,
 } from '@nestjs/common';
 import { KategoriService } from './kategori.service';
 import { CreateKategoriDto } from './dto/create-kategori.dto';
 import { UpdateKategoriDto } from './dto/update-kategori.dto';
-// import { JwtGuard } from '../auth/jwt.guard';
+import { JwtAccessGuard } from '../auth/guards/jwt-access.guard';
 
 @Controller('kategori')
-// @UseGuards(JwtGuard)
+@UseGuards(JwtAccessGuard)
 export class KategoriController {
   constructor(private readonly kategoriService: KategoriService) {}
 
